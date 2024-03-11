@@ -22,7 +22,7 @@ import java.nio.file.Paths;
 @Slf4j
 @Component
 public class TelegramBot  extends TelegramLongPollingBot {
-    @Value("${USERNAME}")
+    @Value("${BOT_USERNAME}")
     private String BOT_USERNAME;
 
     @Value("${BOT_TOKEN}")
