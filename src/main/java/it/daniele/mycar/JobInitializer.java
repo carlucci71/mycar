@@ -32,7 +32,7 @@ public class JobInitializer {
         try {
             jobLauncher.run(job, new JobParameters());
             System.out.println(serviceOpenAI.chatCompletion("che versione sei?"));
-            System.out.println(serviceOpenAI.transcript("/voice.ogg"));
+            System.out.println(serviceOpenAI.transcript("voice.ogg"));
         } catch (Exception e) {
             e.printStackTrace();
         }
