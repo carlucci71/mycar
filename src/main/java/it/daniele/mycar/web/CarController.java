@@ -14,23 +14,6 @@ import java.net.InetAddress;
 @RequestMapping(value = "car", produces = "application/json")
 public class CarController {
 
-    @PostConstruct
-    public void a(){
-        try {
-            String hostAddress = InetAddress.getLocalHost().getHostAddress();
-            System.out.println("********************");
-            System.out.println("********************");
-            System.out.println("********************");
-            System.out.println(hostAddress);
-            System.out.println("********************");
-            System.out.println("********************");
-            System.out.println("********************");
-        } catch (Exception e)
-        {
-
-        }
-
-    }
     @GetMapping
     ResponseEntity<String> get(){
         return ResponseEntity.ok("OK");
