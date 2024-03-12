@@ -22,13 +22,26 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-batch</artifactId>
 		</dependency>
-
 		<dependency>
-			<groupId>com.fasterxml.jackson.module</groupId>
-			<artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
-			<version>2.13.3</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>2.12.3</version> <!-- sostituisci con la versione corrente -->
 		</dependency>
 
+		<dependency>
+			<groupId>io.projectreactor.netty</groupId>
+			<artifactId>reactor-netty-http</artifactId>
+			<version>1.0.12</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>2.12.3</version>
+		</dependency>
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
@@ -42,11 +55,6 @@
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>cool.cena</groupId>
-			<artifactId>openai-spring-boot-starter</artifactId>
-			<version>1.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
