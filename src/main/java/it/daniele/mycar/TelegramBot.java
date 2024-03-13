@@ -27,7 +27,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.BotSession;
 
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +64,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         try {
             if (update.hasMessage()) {
-                Utility.getHostAddress();
                 Long chatId = update.getMessage().getChatId();
                 Voice voice = update.getMessage().getVoice();
                 String transcript=null;
