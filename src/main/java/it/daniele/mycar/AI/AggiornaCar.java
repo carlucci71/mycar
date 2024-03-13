@@ -15,6 +15,7 @@ public class AggiornaCar implements Function<AggiornaCar.Request, AggiornaCar.Re
 	public Response apply(Request request) {
 		try {
 			String hostAddress = InetAddress.getLocalHost().getHostAddress();
+			hostAddress="localhost";
 			String url = "http://" + hostAddress+ ":8718/car";
 			RifornimentoDto rif = new RifornimentoDto(request.veicolo, request.localita, request.km, request.quantita, request.prezzo, request.totale, request.pieno);
 			RifornimentoResource forObject = new RestTemplate().postForObject(url, rif, RifornimentoResource.class);

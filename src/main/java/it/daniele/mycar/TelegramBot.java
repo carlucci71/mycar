@@ -18,12 +18,15 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendVoice;
 import org.telegram.telegrambots.meta.api.objects.File;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.Voice;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.BotSession;
 
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -85,6 +88,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                 }
                 String elab=testAggiornaCar(transcript);
+                InputStream speech = serviceOpenAI.speech(elab);
+                inviaVocale(chatId, speech);
+
                 execute(creaSendMessage(chatId, elab));
             } else if (update.hasCallbackQuery()) {
                 final AnswerCallbackQuery answer = new AnswerCallbackQuery();
@@ -110,13 +116,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         String messaggio = "";
         String rep = " ";
         messaggio = messaggio + "\n" + msg;
-//        if (bReply) {
-//            messaggio = messaggio + "\n" + rep;
-//        }
         sendMessage.setText(messaggio);
         return sendMessage;
     }
 
+    public void inviaVocale(Long chatId, InputStream fileAudio) {
+        SendVoice sendVoiceRequest = new SendVoice();
+        sendVoiceRequest.setChatId(chatId);
+        InputFile inputFile = new InputFile(fileAudio, "tmp.mp3");
+        sendVoiceRequest.setVoice(inputFile);
+        try {
+            execute(sendVoiceRequest);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
     BotSession registerBot;
 
     public void startBot() {

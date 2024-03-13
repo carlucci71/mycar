@@ -1,5 +1,6 @@
 package it.daniele.mycar.AI;
 
+import org.json.JSONObject;
 import org.springframework.ai.chat.ChatClient;
 import org.springframework.ai.chat.ChatResponse;
 import org.springframework.ai.chat.messages.Message;
@@ -15,6 +16,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,12 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,6 +42,7 @@ public class SpringAiChatServiceOpenAI {
     RestTemplateBuilder restTemplateBuilder;
     @Value("${OPEN_AI_KEY}")
     String OPENAI_API_KEY;
+
     public String transcript(Object file) {
         try {
             RestTemplate restTemplate = restTemplateBuilder.build();
@@ -43,14 +52,12 @@ public class SpringAiChatServiceOpenAI {
             headers.set("Authorization", "Bearer " + OPENAI_API_KEY);
 
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("file", new UrlResource((String)file));
+            body.add("file", new UrlResource((String) file));
             body.add("model", "whisper-1");
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
             ResponseEntity<Map> response = restTemplate.postForEntity("https://api.openai.com/v1/audio/transcriptions", requestEntity, Map.class);
             return response.getBody().get("text").toString();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -64,15 +71,65 @@ curl --request POST \
   --form file=@speech.mp3 \
   --form model=whisper-1
 
+
+curl https://api.openai.com/v1/audio/speech \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "tts-1-hd",
+    "input": "Oggi è una bella giornata di sole",
+    "voice": "alloy"
+  }' \
+  --output speech.mp3
+
  */
     }
+
+    public InputStream speech(String testo) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String url = "https://api.openai.com/v1/audio/speech";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + OPENAI_API_KEY);
+
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("model", "tts-1");
+            requestBody.put("input", testo);
+            requestBody.put("response_format", "mp3");
+            requestBody.put("voice", "nova");
+            HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
+            ResponseEntity<byte[]> response = restTemplate.exchange(url, HttpMethod.POST, entity, byte[].class);
+            try {
+                var audioFile = new FileOutputStream("response.mp3");
+                audioFile.write(response.getBody());
+                System.out.println(audioFile.getChannel().size() + " bytes");
+                audioFile.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try (OutputStream outputStream = new FileOutputStream("/1/speech.mp3")) {
+                byte[] strToBytes = response.getBody();
+                outputStream.write(strToBytes);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            byte[] data = response.getBody();
+            return new ByteArrayInputStream(data);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public String chatCompletion(List<Message> listaMessaggi) {
         ChatResponse response = chatClient.call(new Prompt(listaMessaggi));
         return response.getResult().getOutput().getContent();
     }
 
-    public String chatCompletionCallFunction(List<Message> listaMessaggi,List<OpenAiApi.FunctionTool> listaTool,List<FunctionCallback> functionCallbacks){
+    public String chatCompletionCallFunction
+            (List<Message> listaMessaggi, List<OpenAiApi.FunctionTool> listaTool, List<FunctionCallback> functionCallbacks) {
         OpenAiChatOptions promptOptions = OpenAiChatOptions.builder()
                 .withTools(listaTool)
                 .withFunctionCallbacks(functionCallbacks) // function code
@@ -82,23 +139,23 @@ curl --request POST \
         return response.getResult().getOutput().getContent();
     }
 
-    public String chatCompletionToolName(List<Message> listaMessaggi,List<OpenAiApi.FunctionTool> listaTool) {
+    public String chatCompletionToolName(List<Message> listaMessaggi, List<OpenAiApi.FunctionTool> listaTool) {
         List<OpenAiApi.ChatCompletionMessage> messages = listaMessaggi
                 .stream()
                 .map(el -> {
                     ChatCompletionMessage.Role role;
                     switch (el.getMessageType()) {
                         case USER:
-                            role=ChatCompletionMessage.Role.USER;
+                            role = ChatCompletionMessage.Role.USER;
                             break;
                         case SYSTEM:
-                            role=ChatCompletionMessage.Role.SYSTEM;
+                            role = ChatCompletionMessage.Role.SYSTEM;
                             break;
                         case ASSISTANT:
-                            role=ChatCompletionMessage.Role.ASSISTANT;
+                            role = ChatCompletionMessage.Role.ASSISTANT;
                             break;
                         case FUNCTION:
-                            role=ChatCompletionMessage.Role.TOOL;
+                            role = ChatCompletionMessage.Role.TOOL;
                             break;
                         default:
                             throw new RuntimeException("MessageType non corretto: " + el.getMessageType());
