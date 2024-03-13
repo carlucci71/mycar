@@ -1,10 +1,10 @@
 package it.daniele.mycar.AI;
 
+import it.daniele.mycar.Utility;
 import it.daniele.mycar.web.RifornimentoDto;
 import it.daniele.mycar.web.RifornimentoResource;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.InetAddress;
 import java.util.function.Function;
 
 public class AggiornaCar implements Function<AggiornaCar.Request, AggiornaCar.Response> {
@@ -14,9 +14,7 @@ public class AggiornaCar implements Function<AggiornaCar.Request, AggiornaCar.Re
 
 	public Response apply(Request request) {
 		try {
-			String hostAddress = InetAddress.getLocalHost().getHostAddress();
-			hostAddress="localhost";
-			String url = "http://" + hostAddress+ ":8718/car";
+			String url = "http://" + Utility.getHostAddress() + ":8718/car";
 			RifornimentoDto rif = new RifornimentoDto(request.veicolo, request.localita, request.km, request.quantita, request.prezzo, request.totale, request.pieno);
 			RifornimentoResource forObject = new RestTemplate().postForObject(url, rif, RifornimentoResource.class);
 			return new AggiornaCar.Response(forObject.getEsito(), forObject.getQuantita(), forObject.getPrezzo(), forObject.getTotale());

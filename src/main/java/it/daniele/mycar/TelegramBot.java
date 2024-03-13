@@ -65,6 +65,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         try {
             if (update.hasMessage()) {
+                Utility.getHostAddress();
                 Long chatId = update.getMessage().getChatId();
                 Voice voice = update.getMessage().getVoice();
                 String transcript=null;
