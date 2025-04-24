@@ -66,7 +66,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (update.hasMessage()) {
                 Long chatId = update.getMessage().getChatId();
                 Voice voice = update.getMessage().getVoice();
-                String transcript=null;
+                String transcript = null;
                 if (voice != null) {
                     String fileId = voice.getFileId();
                     GetFile getFileRequest = new GetFile();
@@ -75,21 +75,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                         File file = execute(getFileRequest);
                         String filePath = file.getFilePath();
                         String fileUrl = "https://api.telegram.org/file/bot" + getBotToken() + "/" + filePath;
+                        //Trascrivo il messaggio
                         transcript = serviceOpenAI.transcript(fileUrl);
+                        //rimando via testo il messaggio
                         execute(creaSendMessage(chatId, transcript));
                     } catch (TelegramApiException e) {
                         e.printStackTrace();
                     }
                 } else {
+                    //leggo il messaggio scritto
                     transcript = update.getMessage().getText();
                     if (update.getMessage().hasText()) {
+                        //rimando il messaggio
                         execute(creaSendMessage(chatId, transcript));
                     }
                 }
-                String elab=testAggiornaCar(transcript);
-                InputStream speech = serviceOpenAI.speech(elab);
-                inviaVocale(chatId, speech);
-
+                //elaboro la trascrizione
+                String elab = elaboraAggiornaCar(transcript);
+                //rimando il vocale della elaborazione
+                inviaVocale(chatId, serviceOpenAI.speech(elab));
+                //rimando il testo della elaborazione
                 execute(creaSendMessage(chatId, elab));
             } else if (update.hasCallbackQuery()) {
                 final AnswerCallbackQuery answer = new AnswerCallbackQuery();
@@ -130,6 +135,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+
     BotSession registerBot;
 
     public void startBot() {
@@ -144,11 +150,48 @@ public class TelegramBot extends TelegramLongPollingBot {
         return registerBot.isRunning();
     }
 
-    private String testAggiornaCar(String testo){
-        List<Message> messaggi=List.of(
-                new ChatMessage(MessageType.SYSTEM, "Non fare ipotesi sui valori da inserire nelle funzioni. Chiedi chiarimenti se una richiesta dell'utente è ambigua."),
+    private String elaboraAggiornaCar(String testo) {
+        List<Message> messaggi = List.of(
+//                new ChatMessage(MessageType.SYSTEM, "Non fare ipotesi sui valori da inserire nelle funzioni. Chiedi chiarimenti se una richiesta dell'utente è ambigua."),
+                new ChatMessage(MessageType.SYSTEM, "Non fare ipotesi sui valori. Ho bisogno di ricavare le informazioni che ti chiedo."),
+//                new ChatMessage(MessageType.USER, "Se non ti vengono detti i km, richiedili."),
+//                new ChatMessage(MessageType.USER, "Se non ti vengono specificiato se è stato fatto il pieno, richiedilo."),
+//                new ChatMessage(MessageType.USER, "Se non ti vengono detti almeno due valori tra quantita, prezzo e totale, richiedili."),
+//                new ChatMessage(MessageType.USER, "Rispondimi: \"OK\" oppure chiedimi cosa non è chiaro."),
+                new ChatMessage(MessageType.USER, "In base alle informazioni che ti mando, rispondimi con json formato dai seguenti attributi: ."),
+                new ChatMessage(MessageType.USER, "veicolo di tipo String, "),
+                new ChatMessage(MessageType.USER, "localita di tipo String, "),
+                new ChatMessage(MessageType.USER, "km di tipo Integer, "),
+                new ChatMessage(MessageType.USER, "quantita di tipo Float, "),
+                new ChatMessage(MessageType.USER, "prezzo di tipo Float, "),
+                new ChatMessage(MessageType.USER, "totale di tipo Float, "),
+                new ChatMessage(MessageType.USER, "pieno di tipo Boolean, "),
+                new ChatMessage(MessageType.USER, "Quindi la tua rispsta deve essere, ad esempio: {" +
+                        "    \"veicolo\": \"valore\"," +
+                        "    \"localita\": \"valore\"," +
+                        "    \"km\": 30000," +
+                        "    \"quantita\": 2.7," +
+                        "    \"prezzo\": 1.9," +
+                        "    \"totale\": 5.13," +
+                        "    \"pieno\": true" +
+                        "}\n"),
+                new ChatMessage(MessageType.USER, "Non mi rispondere in maniera differente, piuttosto lascia i campi null"),
                 new ChatMessage(MessageType.USER, testo)
         );
+        String rispostaPreventiva = serviceOpenAI.chatCompletion(messaggi);
+        //System.out.println(rispostaPreventiva);
+        //System.out.println();
+
+        /*
+    String veicolo;
+    String localita;
+    Integer km;
+    Float quantita;
+    Float prezzo;
+    Float totale;
+    Boolean pieno;
+         */
+
         Map<String, FunctionProperties> props = new HashMap<>();
         FunctionProperties veicolo = new FunctionProperties()//
                 .setType("string")
@@ -192,20 +235,35 @@ public class TelegramBot extends TelegramLongPollingBot {
         props.put("pieno", pieno);
         FunctionParameters functionParameters = new FunctionParameters()
                 .setType("object")
-                .setRequiredPropertyNames(Arrays.asList("veicolo","data","localita","km","quantita","prezzo", "totale", "pieno"))
+                .setRequiredPropertyNames(Arrays.asList("veicolo", "data", "localita", "km", "quantita", "prezzo", "totale", "pieno"))
                 .setProperties(props);
 
-        List<OpenAiApi.FunctionTool> listaTools=List.of(
+        List<OpenAiApi.FunctionTool> listaTools = List.of(
                 new OpenAiApi.FunctionTool(OpenAiApi.FunctionTool.Type.FUNCTION,
                         new OpenAiApi.FunctionTool.Function("Aggiorna la mia auto", "aggiorna_car", utility.toJson(functionParameters))
                 )
         );
 
         List functionCallbackWrappers = List.of(
-                new FunctionCallbackWrapper<>("aggiorna_car", "Aggiorna la mia auto",  new AggiornaCar())
+                new FunctionCallbackWrapper<>("aggiorna_car", "Aggiorna la mia auto", new AggiornaCar())
 
         );
-        return serviceOpenAI.chatCompletionCallFunction(messaggi, listaTools,functionCallbackWrappers);
+
+        /*
+        List<Message> messaggiTool = List.of(
+                new ChatMessage(MessageType.SYSTEM, "Non fare ipotesi sui valori da inserire nelle funzioni. Chiedi chiarimenti se una richiesta dell'utente è ambigua."),
+                new ChatMessage(MessageType.SYSTEM, "Se non ti vengono detti i km, richiedili."),
+                new ChatMessage(MessageType.SYSTEM, "Se non ti vengono specificiato se è stato fatto il pieno, richiedilo."),
+                new ChatMessage(MessageType.SYSTEM, "Se non ti vengono detti almeno due valori tra quantita, prezzo e totale, richiedili."),
+                new ChatMessage(MessageType.USER, testo),
+                new ChatMessage(MessageType.USER, "In precedenza hai dedotto:"),
+                new ChatMessage(MessageType.ASSISTANT, rispostaPreventiva)
+        );
+
+        return serviceOpenAI.chatCompletionCallFunction(messaggiTool, listaTools, functionCallbackWrappers);
+
+         */
+        return rispostaPreventiva;
     }
 
 }
